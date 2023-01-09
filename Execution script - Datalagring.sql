@@ -24,13 +24,16 @@ SET STATISTICS TIME OFF;
 
   SET STATISTICS TIME ON; 
 
-  select s.id, s.person_number, s.name,
-  count(Siblings.student_id) as siblings
-  from Student as s
-  left join Siblings on Siblings.student_id = s.id
-  group by s.id, s.person_number, s.name
-  order by siblings desc
-
+  select amount_of_sibling.siblings ,count(*) as number_of_students from 
+  (
+		select
+		count(Siblings.student_id) as siblings
+		from Student as s
+		left join Siblings on Siblings.student_id = s.id
+		group by s.id
+  ) amount_of_sibling
+  group by amount_of_sibling.siblings
+ 
   SET STATISTICS TIME OFF;
 
   --Task 3
@@ -58,19 +61,23 @@ SET STATISTICS TIME OFF;
 
   SET STATISTICS TIME ON; 
 
-	  select  lesson.id,Ensemble.genre, sa.lesson_period, Lesson.maximum_students,
-	  count (sl.lesson_id) as Students_registered,
-	  case 
-			when maximum_students - count (sl.lesson_id) >= 0 
-				then maximum_students - count (sl.lesson_id)
-			else 'ERROR'
-			end as Available_seats
-	  from Lesson
-	  left join Student_lesson as sl on sl.lesson_id = Lesson.id
-	  left join Ensemble on Ensemble.lesson_id = Lesson.id
-	  left join Schedule_and_appointments as sa on sa.lesson_id = Lesson.id
-	  where lesson.id = Ensemble.lesson_id and sa.lesson_period between 'jan 21, 2022' and 'jan 28, 2022'
-	  group by Lesson.id, Ensemble.genre, sa.lesson_period, Lesson.maximum_students
-	  order by genre
+  select  lesson.id,Ensemble.genre, sa.lesson_period, Lesson.maximum_students,
+  count (sl.lesson_id) as Students_registered,
+	case 
+		when maximum_students - count(sl.lesson_id) > 0 and maximum_students - count(sl.lesson_id) <= 2
+			then CONVERT(varchar, maximum_students - count (sl.lesson_id))
+		when maximum_students - count(sl.lesson_id) > 2
+			then 'more seats left'
+		when maximum_students - count(sl.lesson_id) = 0
+			then 'full booked'
+		else 'ERROR'
+	end as Available_seats_left
+  from Lesson
+  left join Student_lesson as sl on sl.lesson_id = Lesson.id
+  left join Ensemble on Ensemble.lesson_id = Lesson.id
+  left join Schedule_and_appointments as sa on sa.lesson_id = Lesson.id
+  where lesson.id = Ensemble.lesson_id and sa.lesson_period between 'jan 21, 2022' and 'jan 28, 2022'
+  group by Lesson.id, Ensemble.genre, sa.lesson_period, Lesson.maximum_students
+  order by genre, sa.lesson_period
 
   SET STATISTICS TIME OFF; 
